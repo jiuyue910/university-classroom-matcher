@@ -1,0 +1,16 @@
+# 忽略前端與後端的套件資料夾
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# 忽略本地開發產生的真實 SQLite 資料庫檔案
+server/empty_classroom.db
+
+# 忽略作業系統的小檔案
+.DS_Store
+Thumbs.db
+
+# 忽略 Vite 的本地環境變數檔案
+.env.local
+.env.*.local
+dist/

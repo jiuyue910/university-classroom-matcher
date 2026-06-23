@@ -1,0 +1,13 @@
+/* 課表格子與基本佈局微調 */
+.timetable-cell {
+  height: 4.6rem;
+  border-radius: 0.85rem;
+  border-width: 1px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
