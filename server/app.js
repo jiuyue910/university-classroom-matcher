@@ -1,23 +1,18 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const db = require('./db'); // 引入資料庫模組
-const path = require('path');
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import path from 'path';
+import db from './db.js'; // 引入原本的資料庫模組
 
 const app = express();
-
-// 🔥 修正 1：讓 PORT 自動適應 Azure 環境（如果環境有給就用環境的，本機就用 3000）
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// 🔥 修正 2：用 process.cwd() 絕對路徑取代 __dirname，確保 Azure 一定找得到前端打包網頁
+// 靜態檔案路由：指向本機打包好的前端
 app.use(express.static(path.join(process.cwd(), 'client', 'dist')));
 
-// ==========================================
 // 1. 取得所有成員名單
-// ==========================================
 app.get('/api/users', (req, res) => {
     db.all("SELECT * FROM users", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -25,9 +20,7 @@ app.get('/api/users', (req, res) => {
     });
 });
 
-// ==========================================
 // 2. 新增成員
-// ==========================================
 app.post('/api/users', (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: "請提供姓名" });
@@ -38,21 +31,16 @@ app.post('/api/users', (req, res) => {
     });
 });
 
-// ==========================================
-// 3. 刪除成員 (包含連動刪除課表)
-// ==========================================
+// 3. 刪除成員
 app.delete('/api/users/:id', (req, res) => {
     const userId = req.params.id;
-    
     db.run("DELETE FROM users WHERE id = ?", [userId], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: "成員刪除成功", affectedRows: this.changes });
     });
 });
 
-// ==========================================
-// 4. 取得所有人的課表資料 (打包成前端要的結構)
-// ==========================================
+// 4. 取得所有人的課表資料
 app.get('/api/schedules', (req, res) => {
     db.all("SELECT * FROM schedules", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -67,12 +55,9 @@ app.get('/api/schedules', (req, res) => {
     });
 });
 
-// ==========================================
-// 5. 儲存/更新某個使用者的完整課表 (覆蓋寫入)
-// ==========================================
+// 5. 儲存/更新某個使用者的完整課表
 app.post('/api/schedules/save', (req, res) => {
     const { userId, userSchedule } = req.body;
-    
     if (!userId) return res.status(400).json({ error: "缺少使用者 ID" });
 
     db.run("DELETE FROM schedules WHERE user_id = ?", [userId], (err) => {
@@ -83,7 +68,6 @@ app.post('/api/schedules/save', (req, res) => {
         }
 
         const stmt = db.prepare("INSERT INTO schedules (user_id, day_of_week, period) VALUES (?, ?, ?)");
-        
         try {
             for (const day in userSchedule) {
                 for (const period in userSchedule[day]) {
@@ -100,11 +84,9 @@ app.post('/api/schedules/save', (req, res) => {
     });
 });
 
-// 🔥 修正 3：萬用路由引導也要改成對應的 process.cwd()
+// 萬用路由引導
 app.get('*', (req, res) => {
   res.sendFile(path.join(process.cwd(), 'client', 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+export default app;
