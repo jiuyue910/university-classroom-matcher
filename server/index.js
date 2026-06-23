@@ -2,14 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const db = require('./db'); // 引入資料庫模組
+const path = require('path');
 
 const app = express();
-const path = require('path');
-app.use(express.static(path.join(__dirname, '../client/dist')));
-const PORT = 3000;
+
+// 🔥 修正 1：讓 PORT 自動適應 Azure 環境（如果環境有給就用環境的，本機就用 3000）
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
+
+// 🔥 修正 2：用 process.cwd() 絕對路徑取代 __dirname，確保 Azure 一定找得到前端打包網頁
+app.use(express.static(path.join(process.cwd(), 'client', 'dist')));
 
 // ==========================================
 // 1. 取得所有成員名單
@@ -40,7 +44,6 @@ app.post('/api/users', (req, res) => {
 app.delete('/api/users/:id', (req, res) => {
     const userId = req.params.id;
     
-    // 因為開了 ON DELETE CASCADE，刪除 user 時 schedules 的資料也會被 SQLite 自動清掉
     db.run("DELETE FROM users WHERE id = ?", [userId], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: "成員刪除成功", affectedRows: this.changes });
@@ -54,7 +57,6 @@ app.get('/api/schedules', (req, res) => {
     db.all("SELECT * FROM schedules", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        // 把 SQLite 的扁平資料轉換成 Vue 習慣的 `{ userId: { day: { period: 1 } } }` 格式
         const result = {};
         rows.forEach(row => {
             if (!result[row.user_id]) result[row.user_id] = {};
@@ -69,20 +71,17 @@ app.get('/api/schedules', (req, res) => {
 // 5. 儲存/更新某個使用者的完整課表 (覆蓋寫入)
 // ==========================================
 app.post('/api/schedules/save', (req, res) => {
-    const { userId, userSchedule } = req.body; // userSchedule 結構: { '1': { '1': 1, '2': 1 }, '2': {} ... }
+    const { userId, userSchedule } = req.body;
     
     if (!userId) return res.status(400).json({ error: "缺少使用者 ID" });
 
-    // 先清空該使用者原本的所有舊課表
     db.run("DELETE FROM schedules WHERE user_id = ?", [userId], (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        // 如果傳進來的課表是空的，清空就代表完成了
         if (!userSchedule || Object.keys(userSchedule).length === 0) {
             return res.json({ message: "課表已成功清空儲存" });
         }
 
-        // 準備批量插入新勾選的有課時段
         const stmt = db.prepare("INSERT INTO schedules (user_id, day_of_week, period) VALUES (?, ?, ?)");
         
         try {
@@ -101,9 +100,11 @@ app.post('/api/schedules/save', (req, res) => {
     });
 });
 
+// 🔥 修正 3：萬用路由引導也要改成對應的 process.cwd()
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  res.sendFile(path.join(process.cwd(), 'client', 'dist', 'index.html'));
 });
+
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
