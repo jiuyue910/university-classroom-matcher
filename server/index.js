@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const db = require('./db'); // 引入資料庫模組
 
 const app = express();
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../client/dist')));
 const PORT = 3000;
 
 app.use(cors());
@@ -99,6 +101,9 @@ app.post('/api/schedules/save', (req, res) => {
     });
 });
 
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
