@@ -2,10 +2,6 @@
   "name": "university-classroom-matcher-root",
   "version": "1.0.0",
   "scripts": {
-    "install-client": "cd client && npm install",
-    "install-server": "cd server && npm install",
-    "build-client": "cd client && npm run build",
-    "postinstall": "npm run install-client && npm run install-server && npm run build-client",
-    "start": "npm run postinstall && cd server && node index.js"
+    "start": "cd server && node index.js"
   }
 }

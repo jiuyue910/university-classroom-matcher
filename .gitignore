@@ -13,4 +13,3 @@ Thumbs.db
 # 忽略 Vite 的本地環境變數檔案
 .env.local
 .env.*.local
-dist/
